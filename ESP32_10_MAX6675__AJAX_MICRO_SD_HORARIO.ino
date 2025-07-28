@@ -36,8 +36,8 @@ unsigned long tempoUltimaGravacao;
 
 //****************************************
 //Dados para conexão com a INTERNET
-#define MEU_SSID "INTERNET"
-#define MINHA_SENHA "internet567"
+#define MEU_SSID "wifiii"
+#define MINHA_SENHA "3232internet567"
 WebServer server(80);
 
 //****************************************
