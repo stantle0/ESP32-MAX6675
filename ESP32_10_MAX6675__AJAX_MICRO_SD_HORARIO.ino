@@ -8,36 +8,31 @@
 #include <SD.h>
 #include <time.h>
 #include "PaginaInicial.h"
+#include "SenhasEKeys.h"
 
 
 //****************************************
-//LED interno ESP32 para controle de gravacao
-//O led ficar aceso caso nao possa
-#define LED_INTERNO_GRAVACAO 2
-
-//****************************************
-//PORTAS MAX6675
-#define MAX_SCK 21
-#define MAX_CS 4
-#define MAX_SO 22
+//CONTROLE ESP32
+#define LED_INTERNO_GRAVACAO 2 //LED apagado indica ESP32 ocupado gravando no SD e não deve ser desligado
 
 //****************************************
 //Dados para MAX6675
+#define MAX_SCK 21
+#define MAX_CS 4
+#define MAX_SO 22
 MAX6675 thermopar(MAX_SCK,MAX_CS,MAX_SO);
 float temperaturaAtual;
 
 //****************************************
 //Dados para MODULO SD
 #define MICRO_SD_CS 5 //Outras portas utilizdas: 18,19,23
-#define DELAY_PARA_ESCRITA_SD 5000
+#define DELAY_PARA_ESCRITA_SD 30000
 File arquivoSD;
 String nomeArquivo = "/temperaturas.csv";
 unsigned long tempoUltimaGravacao;
 
 //****************************************
 //Dados para conexão com a INTERNET
-#define MEU_SSID "wifiii"
-#define MINHA_SENHA "3232internet567"
 WebServer server(80);
 
 //****************************************
@@ -57,6 +52,7 @@ void setup() {
   
   Serial.begin(115200);
   delay(500);
+
   //Conexão WiFi
   Serial.println("Conectando");
   WiFi.begin(MEU_SSID,MINHA_SENHA);
@@ -100,7 +96,7 @@ void setup() {
 }
 
 void loop() {
-
+  //************************************
   //ESCRITA EM ARQUIVO
   if (millis() - tempoUltimaGravacao > DELAY_PARA_ESCRITA_SD) {
     Serial.println("Gravando no arquivo");
@@ -114,17 +110,15 @@ void loop() {
     strftime(stringDataHora, sizeof(stringDataHora), "%d/%m/%Y %H:%M:%S", horaAtualParaGravacao);
     //abrindo aquivo
     Serial.println("Abrindo arquivo");
-    digitalWrite(LED_INTERNO_GRAVACAO,LOW);
+    digitalWrite(LED_INTERNO_GRAVACAO,LOW); //indica que o ESP32 está ocupado e nao deve ser desligado
     arquivoSD = SD.open(nomeArquivo, FILE_WRITE);
     if (arquivoSD) {
-      Serial.println("Arquivo aberto");
-      //TODO reativar adicionar informacoes no final do arquivo
       arquivoSD.seek(arquivoSD.size());
       arquivoSD.println(String(stringDataHora) + ", " + String(thermopar.readCelsius()));
       Serial.println(String(stringDataHora) + ", " + String(thermopar.readCelsius()));
       arquivoSD.close();
       digitalWrite(LED_INTERNO_GRAVACAO,HIGH);
-      Serial.println("Arquivo fechado");
+      Serial.println("Gravação concluída");
     }
     else {
       Serial.println("Falha ao abrir o arquivo.");
@@ -132,11 +126,13 @@ void loop() {
     }
   }
 
+  //**************************************************
   //RESPONDER CLIENTES DO SERVIDOR
-  //Serial.println("Respondendo clientes");
   server.handleClient();
 }
 
+//****************************************************
+//HANDLERS DOS PEDIDOS DOS CLIENTES
 void handlePaginaInicial() {
   server.send(200,"text/html", PAGINA_INICIAL);
 }
